@@ -1,24 +1,9 @@
 ---
 name: embedded-review
-description: "Expert code review for embedded/firmware projects with dual-model cross-review (Claude + Codex via ACP). Detects memory safety, interrupt hazards, RTOS pitfalls, hardware interface bugs, and C/C++ anti-patterns."
+description: "Expert code review for embedded/firmware projects with dual-model cross-review (Claude + Codex via ACP). Detects memory safety, interrupt hazards, RTOS pitfalls, hardware interface bugs, and C/C++ anti-patterns. Trigger when user asks to review embedded/firmware/MCU code changes, diffs, or PRs. Examples: 'review firmware-pro2 的改动', 'review the NFC changes', '/embedded-review ~/path/to/repo', '/embedded-review ~/path/to/repo HEAD~5..HEAD', '/embedded-review <github-pr-url>'. Target environments: bare-metal MCU (STM32, nRF, ESP32, RP2040), RTOS (FreeRTOS/Zephyr/ThreadX), Linux embedded, mixed C/C++ firmware."
 ---
 
 # Embedded Code Review Expert
-
-## Overview
-
-Perform structured code review of embedded/firmware projects using **dual-model cross-review**: Claude Code and Codex independently review the same diff, then findings are cross-compared to catch blind spots that single-model review misses.
-
-Target environments: bare-metal MCU, RTOS (FreeRTOS/Zephyr/ThreadX), Linux embedded, mixed C/C++ firmware.
-
-## Trigger
-
-Activate when user asks to review embedded/firmware code changes. Examples:
-- "review firmware-pro2 的改动"
-- "review the NFC changes"
-- `/embedded-review ~/Documents/dec/firmware-pro2`
-- `/embedded-review ~/Documents/dec/firmware-pro2 HEAD~5..HEAD`
-- `/embedded-review <github-pr-url>`
 
 ## Severity Levels
 
@@ -52,16 +37,18 @@ User can override: "用双模型 review" or "quick review 就行"
 
 ### Phase 0: Preflight — Scope & Context
 
-1. Run `scripts/prepare-diff.sh <repo_path> [diff_range]` to extract:
+1. Run `scripts/prepare-diff.sh <repo_path> [diff_range]` — outputs:
    - Repository info (branch, last commit)
-   - Target identification (MCU, RTOS, compiler)
-   - Diff stat and full diff content
+   - Target identification (MCU, RTOS, compiler from build files)
+   - Diff stat, line count, and size assessment (SMALL/MEDIUM/LARGE)
+   - Critical path detection (ISR/DMA, crypto, NFC, boot/OTA)
+   - Full diff content
 
-2. Assess scope:
+2. Use script output to decide review mode:
    - **No changes**: Inform user; offer to review staged changes or a commit range.
-   - **Small diff (≤100 lines)**: Default to single-model review.
-   - **Large diff (>500 lines)**: Summarize by file/module first, then review in batches by subsystem.
-   - **Critical path touched** (ISR, DMA, crypto, NFC, boot): Always recommend dual-model.
+   - **SMALL (≤100 lines)**: Default to single-model review.
+   - **LARGE (>500 lines)**: Summarize by file/module first, then review in batches by subsystem.
+   - **Critical path detected**: Always recommend dual-model.
 
 3. Build review context package:
    ```
